@@ -1,0 +1,45 @@
+pipeline {
+  environment {
+    registry = "akankshabansal/docker-test"
+    registryCredential = ‘dockerhub’
+  }
+  agent any
+  stages {
+  stage ('Uploading to Artifactory')
+	{
+		steps
+		{
+		echo "Stage for artifact"
+		rtMavenDeployer (
+                    id: 'deployer',
+                    serverId: '123456789@artifactory',
+		    snapshotRepo: 'devopsforqa',
+                    releaseRepo: 'devopsforqa_release'
+                    
+                )
+                rtMavenRun (
+                    pom: 'pom.xml',
+                    goals: 'clean install',
+                    deployerId: 'deployer',
+                )
+                rtPublishBuildInfo (
+                    serverId: '123456789@artifactory',
+                )
+			
+		}
+	}
+    stage('Cloning Git') {
+      steps {
+        git 'https://github.com/akankshabansal1/dockerjenkins.git'
+      }
+    }
+    stage('Building image') {
+      steps{
+        script {
+          docker.build registry + ":$BUILD_NUMBER"
+        }
+      }
+    }
+    
+  }
+}
